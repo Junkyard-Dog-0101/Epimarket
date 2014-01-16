@@ -7,9 +7,16 @@ import android.os.Bundle;
 import android.support.v4.app.NavUtils;
 import android.util.Log;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
+import android.widget.TextView;
 
 public class LoginActivity extends Activity implements IActivity
 {
+
+    private SocketConnection mStaticSocket;
+    private String mLogin;
+
     @SuppressLint("NewApi")
     @Override
     protected void onCreate(Bundle savedInstanceState)
@@ -22,15 +29,31 @@ public class LoginActivity extends Activity implements IActivity
             // Show the Up button in the action bar.
             getActionBar().setDisplayHomeAsUpEnabled(true);
         }
-        SocketConnection socket = SocketConnection.getInstance();
-        socket.addActivityStack(this);
-        socket.writeOnServer("getproducts");
+        mStaticSocket = SocketConnection.getInstance();
+        mStaticSocket.addActivityStack(this);
+//        /socket.writeOnServer("getproducts");
+    }
+
+    public void TryLogin(View view)
+    {
+        mLogin = ((EditText)findViewById(R.id.editTextLogin)).getText().toString();
+        String Password = ((EditText)findViewById(R.id.editTextPassword)).getText().toString();
+        mStaticSocket.writeOnServer(new StringBuilder("login;" + mLogin + ";" + Password).toString());
     }
 
     @Override
     public void answerUpdateContent(String data)
     {
-        Log.e("test2", data);
+        Log.e("grdgr", data);
+        String[] split = data.split(":");
+        if (split[0].equals("login") && split[1].equals("ok"))
+        {
+           // TextView text = (TextView) findViewById(R.id.LoginDisplay);
+            //String app_name = setString(R.string.Login);
+        //    text.setText("Login");
+            finish();
+        }
+      //  Log.e("test2", data);
     }
 
 /*    @Override

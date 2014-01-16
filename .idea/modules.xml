@@ -3,7 +3,8 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/App/App.iml" filepath="$PROJECT_DIR$/App/App.iml" />
-      <module fileurl="file://$PROJECT_DIR$/EpiMarket.iml" filepath="$PROJECT_DIR$/EpiMarket.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Epimarket.iml" filepath="$PROJECT_DIR$/Epimarket.iml" />
+      <module fileurl="file://$PROJECT_DIR$/Epimarket.iml" filepath="$PROJECT_DIR$/Epimarket.iml" />
     </modules>
   </component>
 </project>

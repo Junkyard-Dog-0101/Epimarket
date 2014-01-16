@@ -61,6 +61,10 @@ public class SocketConnection implements Runnable
         {
             e.printStackTrace();
         }
+        catch (java.lang.NullPointerException e)
+        {
+
+        }
     }
 
     @Override
