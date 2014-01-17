@@ -1,6 +1,9 @@
 package com.epimarket.app;
 
+import android.app.AlertDialog;
+import android.content.Context;
 import android.content.Intent;
+import android.graphics.Color;
 import android.os.Handler;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v4.app.Fragment;
@@ -11,18 +14,23 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.ListView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import java.util.ArrayList;
 import java.util.List;
 
 public class MainActivity extends ActionBarActivity implements IActivity
 {
-    private Handler tutu = new Handler();
-  //  Runnable r = new SocketConnection("10.17.72.248", 4242, this);
-    Runnable r = new SocketConnection("192.168.1.11", 4242, this);
+    private Handler             mHandler = new Handler();
+    private SocketConnection    mStaticSocket = SocketConnection.getInstance();
+    private List<Product>       list = new ArrayList<Product>();
+    private Boolean             mLogin = false;
+
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -32,52 +40,58 @@ public class MainActivity extends ActionBarActivity implements IActivity
         {
             getSupportFragmentManager().beginTransaction().add(R.id.container, new PlaceholderFragment()).commit();
         }
-        new Thread(r).start();
+        mStaticSocket.addActivityStack(this);
+        new Thread(mStaticSocket).start();
 
     }
 
-
-
+    public void click_getcart(View view)
+    {
+        Intent intent = new Intent(this, CartActivity.class);
+        startActivity(intent);
+    }
 
     public void sendMessage(View view)
     {
-        Intent intent = new Intent(this, LoginActivity.class);
-       // EditText editText = (EditText) findViewById(R.id.edit_message);
-        //String message = editText.getText().toString();
-        //intent.putExtra(EXTRA_MESSAGE, message);
-        startActivity(intent);
+        if (mLogin == false)
+        {
+            Intent intent = new Intent(this, LoginActivity.class);
+            startActivity(intent);
+        }
+        else
+        {
+            mStaticSocket.writeOnServer("logout");
+        }
     }
-    @Override
+
+/*    @Override
     public boolean onCreateOptionsMenu(Menu menu)
     {
-        // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.main, menu);
         return true;
     }
-
-    @Override
+*/
+    /*@Override
     public boolean onOptionsItemSelected(MenuItem item)
     {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
         if (id == R.id.action_settings)
         {
             return true;
         }
         return super.onOptionsItemSelected(item);
-    }
+    }*/
+
+
 
     @Override
-    public void answerUpdateContent(String data)
+    public void responseUpdateContent(String data)
     {
         String[] split = data.split(":");
-        Log.e("0",split[0]);
+
         if (split[0].equals("getproducts"))
         {
             String[] tab = split[1].split(";");
-            List<Product> list = new ArrayList<Product>();
             List<String> listName = new ArrayList<String>();
             try
             {
@@ -90,47 +104,92 @@ public class MainActivity extends ActionBarActivity implements IActivity
             }
             catch (NullPointerException e)
             {
-                e.printStackTrace();
+                Log.e("NullPointerException", e.toString());
             }
             catch (ArrayIndexOutOfBoundsException e)
             {
-
+                Log.e("ArrayIndexOutOfBoundsException", e.toString());
             }
             final List<String> listName2 = listName;
             final ListView lvListe = (ListView)findViewById(R.id.listView);
-            tutu.post(new Runnable() {
-                @Override
-                public void run() {
-                    lvListe.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, listName2));
-                }
-            });
-        }
-
-        if (split[0].equals("login") && split[1].equals("ok"))
-        {
-            tutu.post(new Runnable()
+            mHandler.post(new Runnable()
             {
                 @Override
                 public void run()
                 {
-                    TextView text = (TextView) findViewById(R.id.LoginDisplay);
-                    //String app_name = setString(R.string.Login);
-                    text.setText("Login");
-                   // lvListe.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, listName2));
+                    lvListe.setAdapter(new ArrayAdapter<String>(MainActivity.this, android.R.layout.simple_list_item_1, listName2));
+                    lvListe.setTextFilterEnabled(true);
+                    lvListe.setOnItemClickListener(new AdapterView.OnItemClickListener()
+                    {
+                        public void onItemClick(AdapterView<?> arg0, View v, int position, long id)
+                        {
+                            Intent intent = new Intent(MainActivity.this, ProductActivity.class);
+                            //EditText editText = (EditText) findViewById(R.id.edit_message);
+                            //String message = editText.getText().toString();
+                           // intent.putExtra(EXTRA_MESSAGE, message);
+                            intent.putExtra("productObject", list.get(position));
+                            startActivity(intent);
+                           /* AlertDialog.Builder adb = new AlertDialog.Builder(
+                                    this);
+                            adb.setTitle("ListView OnClick");
+                            adb.setMessage("Selected Item is = "
+                                    + lvListe.getItemAtPosition(position));
+                            adb.setPositiveButton("Ok", null);
+                            adb.show();*/
+                        }
+                    });
                 }
             });
-           // finish(LoginActivity);
-//R.string.Login
-           
         }
-   //   st1", data);
+        else if (split[0].equals("login") && split[1].equals("ok"))
+        {
+            mLogin = true;
+            mHandler.post(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    Button button = (Button) findViewById(R.id.button);
+                    button.setText("Logout");
+                    TextView textView = (TextView) findViewById(R.id.LoginDisplay);
+                    textView.setText("LOGIN");
+                    textView.setTextColor(Color.GREEN);
+                    Context context = getApplicationContext();
+                    CharSequence text = "You're connected !";
+                    int duration = Toast.LENGTH_SHORT;
+                    Toast toast = Toast.makeText(context, text, duration);
+                    toast.show();
+                }
+            });
+        }
+        else if (split[0].equals("logout"))
+        {
+            mLogin = false;
+            mHandler.post(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    Button button = (Button) findViewById(R.id.button);
+                    button.setText("Login");
+                    TextView textView = (TextView) findViewById(R.id.LoginDisplay);
+                    textView.setText("NOT LOG");
+                    textView.setTextColor(Color.RED);
+                    Context context = getApplicationContext();
+                    CharSequence text = "diconnected !";
+                    int duration = Toast.LENGTH_SHORT;
+                    Toast toast = Toast.makeText(context, text, duration);
+                    toast.show();
+                }
+            });
+        }
+
 
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
+
+    public static class PlaceholderFragment extends Fragment
+    {
 
         public PlaceholderFragment() {
         }

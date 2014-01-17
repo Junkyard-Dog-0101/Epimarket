@@ -2,22 +2,26 @@ package com.epimarket.app;
 
 import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.content.Context;
+import android.graphics.Color;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
 import android.support.v4.app.NavUtils;
 import android.util.Log;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class LoginActivity extends Activity implements IActivity
 {
+    private SocketConnection    mStaticSocket;
+    private String              mLogin;
+    private String              mPassword;
+    private Handler             mHandler = new Handler();
 
-    private SocketConnection mStaticSocket;
-    private String mLogin;
-
-    @SuppressLint("NewApi")
     @Override
     protected void onCreate(Bundle savedInstanceState)
     {
@@ -37,32 +41,56 @@ public class LoginActivity extends Activity implements IActivity
     public void TryLogin(View view)
     {
         mLogin = ((EditText)findViewById(R.id.editTextLogin)).getText().toString();
-        String Password = ((EditText)findViewById(R.id.editTextPassword)).getText().toString();
-        mStaticSocket.writeOnServer(new StringBuilder("login;" + mLogin + ";" + Password).toString());
+        mPassword = ((EditText)findViewById(R.id.editTextPassword)).getText().toString();
+        mStaticSocket.writeOnServer(new StringBuilder("login;" + mLogin + ";" + mPassword).toString());
+    }
+
+    public void click_register(View view)
+    {
+       mLogin = ((EditText)findViewById(R.id.login2)).getText().toString();
+       mPassword = ((EditText)findViewById(R.id.password2)).getText().toString();
+       mStaticSocket.writeOnServer(new StringBuilder("register;" + mLogin + ";" + mPassword).toString());
     }
 
     @Override
-    public void answerUpdateContent(String data)
+    protected void onDestroy()
     {
-        Log.e("grdgr", data);
+        super.onDestroy();
+        mStaticSocket.removeActivityStack(this);
+    }
+
+
+
+    @Override
+    public void responseUpdateContent(String data)
+    {
         String[] split = data.split(":");
         if (split[0].equals("login") && split[1].equals("ok"))
         {
-           // TextView text = (TextView) findViewById(R.id.LoginDisplay);
-            //String app_name = setString(R.string.Login);
-        //    text.setText("Login");
             finish();
         }
-      //  Log.e("test2", data);
-    }
-
-/*    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        switch (item.getItemId()) {
-            case android.R.id.home:
-                NavUtils.navigateUpFromSameTask(this);
-                return true;
+        else if (split[0].equals("register") && split[1].equals("ok"))
+        {
+            //mLogin = ((EditText)findViewById(R.id.editTextLogin)).getText().toString();
+            //mPassword = ((EditText)findViewById(R.id.editTextPassword)).getText().toString();
+            mStaticSocket.writeOnServer(new StringBuilder("login;" + mLogin + ";" + mPassword).toString());
+           // finish();
         }
-        return super.onOptionsItemSelected(item);
-    }*/
+        else
+        {
+            mHandler.post(new Runnable()
+            {
+                @Override
+                public void run()
+                {
+                    Context context = getApplicationContext();
+                    CharSequence text = "erreur";
+                    int duration = Toast.LENGTH_SHORT;
+
+                    Toast toast = Toast.makeText(context, text, duration);
+                    toast.show();
+                }
+            });
+        }
+    }
 }

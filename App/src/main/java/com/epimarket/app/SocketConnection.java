@@ -13,25 +13,25 @@ import java.util.ArrayList;
 
 public class SocketConnection implements Runnable
 {
-    private Socket                      connection;
-    private PrintWriter                 out;
-    private BufferedReader              in;
-    private static SocketConnection     mInstance;
-    private ArrayList<IActivity>        mActivityList;
-    private IActivity                   mActivity;
-    private String                      mIP;
-    private int                         mPort;
+    private Socket                      mConnection;
+    private PrintWriter                 mOut;
+    private BufferedReader              mIn;
+    private ArrayList<IActivity>        mActivityList = new ArrayList<IActivity>();;
+    private static SocketConnection     mInstance = null;
+    private final static String         mIP = "192.168.1.11";
+    private final static int            mPort = 4242;
 
-    public SocketConnection(String newIP, int newPort, IActivity act)
+    private SocketConnection()
     {
-        mIP = newIP;
-        mPort = newPort;
-        mActivity = act;
+
     }
 
     public static SocketConnection getInstance()
     {
-        return (mInstance);
+        if (mInstance == null)
+            return (mInstance = new SocketConnection());
+        else
+            return (mInstance);
     }
 
     public synchronized void addActivityStack(IActivity newActivity)
@@ -39,11 +39,16 @@ public class SocketConnection implements Runnable
         mActivityList.add(newActivity);
     }
 
+    public synchronized void removeActivityStack(IActivity newActivity)
+    {
+        mActivityList.remove(newActivity);
+    }
+
     private void callActivityUpdate(String readString)
     {
         for (IActivity current : mActivityList)
         {
-            current.answerUpdateContent(readString);
+            current.responseUpdateContent(readString);
         }
     }
 
@@ -51,19 +56,19 @@ public class SocketConnection implements Runnable
     {
         try
         {
-            if (out == null)
+            if (mOut == null)
             {
-                out = new PrintWriter(new BufferedWriter(new OutputStreamWriter(connection.getOutputStream())), true);
+                mOut = new PrintWriter(new BufferedWriter(new OutputStreamWriter(mConnection.getOutputStream())), true);
             }
-            out.println(content);
+            mOut.println(content);
         }
         catch (IOException e)
         {
-            e.printStackTrace();
+            Log.e("IOException", e.toString());
         }
         catch (java.lang.NullPointerException e)
         {
-
+            Log.e("NullPointerException", e.toString());
         }
     }
 
@@ -72,28 +77,25 @@ public class SocketConnection implements Runnable
     {
         try
         {
-            connection = new Socket(mIP, mPort);
+            mConnection = new Socket(mIP, mPort);
         }
         catch (UnknownHostException e)
         {
-            Log.e("UnknownHostException", e.toString());
+            Log.e("UnknownHostException in Thread", e.toString());
         }
         catch (IOException e)
         {
             Log.e("IOException in Thread", e.toString());
         }
-        mActivityList = new ArrayList<IActivity>();
-        addActivityStack(mActivity);
-        mInstance = this;
         writeOnServer("getproducts");
         try
         {
             while (true)
             {
-                in = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                if (in  == null)
+                mIn = new BufferedReader(new InputStreamReader(mConnection.getInputStream()));
+                if (mIn  == null)
                     break;
-                callActivityUpdate(in.readLine());
+                callActivityUpdate(mIn.readLine());
             }
         }
         catch (IOException e)
